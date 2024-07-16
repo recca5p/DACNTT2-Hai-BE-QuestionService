@@ -23,7 +23,7 @@ public class QuestionDbContext : DbContext, IQuestionDbContext
         {
             optionsBuilder.UseNpgsql(connectionString);
         }
-        optionsBuilder.UseNpgsql("User ID=koffee;Password=koffee;Host=103.166.182.81;Port=5432;Database=question_service;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=200;Timeout=60;Application Name=ExamBank");
+        optionsBuilder.UseNpgsql("");
     }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
