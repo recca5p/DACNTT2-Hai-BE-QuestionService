@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Domain.Entities;
 using Npgsql;
+using UserService.Models;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -25,36 +26,152 @@ public class QuestionController : ControllerBase
 
     private IDbConnection CreateConnection()
     {
-        return new NpgsqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+        var connect = _configuration.GetConnectionString("DefaultConnection");
+        return new NpgsqlConnection(connect);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetQuestions()
+    [HttpGet("get-question")]
+    public async Task<IActionResult> GetQuestions([FromQuery] QuestionFilterParameters filterParameters)
     {
-        var createdBy = new int[] { 1, 2 }; // example data
-        var subjectIds = new int[] { 3, 4 }; // example data
-        var chapterIds = new int[] { 5, 6 }; // example data
-        var levels = new int[] { 1, 2 }; // example data
-        var questionTypeId = new int[] { 1, 2 }; // example data
-        var search = "example search"; // example data
-
         using (var connection = CreateConnection())
         {
             connection.Open();
 
             var parameters = new
             {
-                p_created_by = createdBy,
-                p_subject_ids = subjectIds,
-                p_chapter_ids = chapterIds,
-                p_levels = levels,
-                p_question_type_id = questionTypeId,
-                p_search = search
+                p_created_by = filterParameters.CreatedBy,
+                p_subject_ids = filterParameters.SubjectIds,
+                p_chapter_ids = filterParameters.ChapterIds,
+                p_levels = filterParameters.Levels,
+                p_question_type_id = filterParameters.QuestionTypeId,
+                p_search = filterParameters.Search
             };
 
             var sql = "SELECT * FROM get_questions(@p_created_by, @p_subject_ids, @p_chapter_ids, @p_levels, @p_question_type_id, @p_search);";
-            var result = await connection.QueryAsync<Question>(sql, parameters);
+            var result = await connection.QueryAsync<QuestionModel>(sql, parameters);
             return new JsonResult(result);
         }
     }
+
+    [HttpGet("get-subjects")]
+    public async Task<IActionResult> GetSubjects([FromQuery] long CreatedBy)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new
+            {
+                p_created_by = CreatedBy
+            };
+
+            var sql = "SELECT * FROM get_subjects(@p_created_by);";
+            var result = await connection.QueryAsync<SubjectModel>(sql, parameters);
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpGet("get-chapter")]
+    public async Task<IActionResult> GetChapters([FromQuery] int SubjectId, [FromQuery] long CreatedBy)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new
+            {
+                p_subject_id = SubjectId,
+                p_created_by = CreatedBy
+            };
+
+            var sql = "SELECT * FROM get_chapters(@p_subject_id,@p_created_by);";
+            var result = await connection.QueryAsync<ChapterModel>(sql, parameters);
+            return new JsonResult(result);
+        }
+    }
+    [HttpGet("get-level")]
+    public async Task<IActionResult> GetLevels()
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+            var sql = "SELECT * FROM get_active_levels();";
+            var result = await connection.QueryAsync<LevelModel>(sql);
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpDelete("delete-chapter/{chapterId}")]
+    public async Task<IActionResult> DeleteChapter(int chapterId)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new { p_chapter_id = chapterId };
+            var sql = "SELECT * FROM delete_chapter(@p_chapter_id);";
+            var result = await connection.QueryFirstOrDefaultAsync<ReturnMessage>(sql, parameters);
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpPost("upsert-chapter")]
+    public async Task<IActionResult> UpsertChapter([FromBody] CreateOrUpdateChapterReq model)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new
+            {
+                p_chapter_id = model.ChapterId,
+                p_chapter_name = model.ChapterName,
+                p_subject_id = model.SubjectId,
+                p_created_by = model.CreatedBy,
+                p_created_by_name = model.CreatedByName
+            };
+
+            var sql = "SELECT * FROM upsert_chapter(@p_chapter_id, @p_chapter_name, @p_subject_id, @p_created_by, @p_created_by_name);";
+            var result = await connection.QueryFirstOrDefaultAsync<ReturnMessage>(sql, parameters);
+
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpDelete("delete-subject/{subjectId}")]
+    public async Task<IActionResult> DeleteSubject(int subjectId)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new { p_subject_id = subjectId };
+            var sql = "SELECT * FROM delete_subject(@p_subject_id);";
+            var result = await connection.QueryFirstOrDefaultAsync<ReturnMessage>(sql, parameters);
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpPost("upsert-subject")]
+    public async Task<IActionResult> UpsertSubject([FromBody] CreateOrUpdateSubjectReq model)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new
+            {
+                p_subject_id = model.SubjectId,
+                p_subject_name = model.SubjectName,
+                p_created_by = model.CreatedBy,
+                p_created_by_name = model.CreatedByName
+            };
+
+            var sql = "SELECT * FROM upsert_subject(@p_subject_id, @p_subject_name, @p_created_by, @p_created_by_name);";
+            var result = await connection.QueryFirstOrDefaultAsync<ReturnMessage>(sql, parameters);
+
+            return new JsonResult(result);
+        }
+    }
+
 }

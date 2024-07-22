@@ -1,6 +1,6 @@
-namespace UserService;
+namespace UserService.Models;
 
-public class Question
+public class QuestionModel
 {
     public int QuestionId { get; set; }
     public string QuestionTitle { get; set; }
