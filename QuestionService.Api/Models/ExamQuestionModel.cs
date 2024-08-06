@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 public class ExamQuestionModel
 {
     public int QuestionTypeId { get; set; }
+    public string Mark { get; set; }
     public string QuestionTypeName { get; set; }
     public string QuestionTypeDisplayTitle { get; set; }
     [JsonIgnore]
