@@ -12,6 +12,7 @@ using Dapper;
 using Domain.Entities;
 using Npgsql;
 using UserService.Models;
+using System.Text.Json;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -170,6 +171,27 @@ public class QuestionController : ControllerBase
             var sql = "SELECT * FROM upsert_subject(@p_subject_id, @p_subject_name, @p_created_by, @p_created_by_name);";
             var result = await connection.QueryFirstOrDefaultAsync<ReturnMessage>(sql, parameters);
 
+            return new JsonResult(result);
+        }
+    }
+
+    [HttpGet("get-exam-question")]
+    public async Task<IActionResult> GetExamQuestions([FromQuery] ExamQuestionFilterParameters filterParameters)
+    {
+        using (var connection = CreateConnection())
+        {
+            connection.Open();
+
+            var parameters = new
+            {
+                p_levels = filterParameters.Levels,
+                p_subjects = filterParameters.SubjectIds,
+                p_chapters = filterParameters.ChapterIds,
+                p_create_by = filterParameters.CreatedBy
+            };
+
+            var sql = "SELECT * FROM get_exam_questions(@p_levels, @p_subjects, @p_chapters, @p_create_by);";
+            var result = await connection.QueryAsync<ExamQuestionModel>(sql, parameters);
             return new JsonResult(result);
         }
     }
